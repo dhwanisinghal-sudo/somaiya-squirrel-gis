@@ -1,0 +1,19 @@
+# Real data stays out of Git (it lives in Drive and Kobo)
+results/
+raw_data/
+clean_data/
+photos/
+Somaiya_Vidyavihar_Squirrel_Survey_-_all_versions_*
+*.jpg
+*.jpeg
+*.png
+
+# Python files
+__pycache__/
+*.pyc
+.venv/
+.ipynb_checkpoints/
+
+# System files
+.DS_Store
+Thumbs.db
