@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Somaiya Squirrel Dashboard</title>
+<style>
+:root{--bg:#f5f7fa;--card:#fff;--text:#1b2733;--muted:#5b6b7b;--border:#d9e0e7;--accent:#1F4E78;--bar:#1F4E78;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1720;--card:#18232f;--text:#e8eef4;--muted:#9fb0c0;--border:#2b3a49;--accent:#7fb2e0;--bar:#5a9fd4}}
+:root[data-theme="dark"]{--bg:#0f1720;--card:#18232f;--text:#e8eef4;--muted:#9fb0c0;--border:#2b3a49;--accent:#7fb2e0;--bar:#5a9fd4}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,Helvetica,sans-serif;font-size:14px}
+main{max-width:1000px;margin:0 auto;padding:14px}
+h1{font-size:20px;margin:0 0 2px;color:var(--accent)}
+.sub{color:var(--muted);margin:0 0 10px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px}
+h2{font-size:14px;margin:0 0 8px}
+.banner{background:#fff3cd;color:#664d03;border-radius:8px;padding:8px 10px;margin-bottom:10px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:12px}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px}
+.kpi b{display:block;font-size:22px;color:var(--accent)}
+.kpi span{color:var(--muted);font-size:12px}
+select,input[type=file]{background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px;max-width:100%}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.bar{display:flex;align-items:center;gap:8px;margin:4px 0}
+.bar .l{width:46px;flex:none}.bar .t{flex:1;background:var(--border);border-radius:4px;height:16px}
+.bar .t i{display:block;height:100%;background:var(--bar);border-radius:4px}
+.bar .v{width:44px;text-align:right;flex:none}
+.bar.sel .l{font-weight:bold;color:var(--accent)}
+svg{width:100%;height:auto;display:block}
+.leg span{margin-right:12px;font-size:12px}.leg i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px}
+.note{color:var(--muted);font-size:12px;margin-top:6px}
+</style></head><body><main>
+<h1>Somaiya Vidyavihar Squirrel Dashboard</h1>
+<p class="sub">Sightings per effort-hour is a sighting index, not a population estimate.</p>
+<div id="banner" class="banner">Showing DEMO data. Load your own files below to see real results.</div>
+<div class="card"><h2>Load your results</h2><div class="row">
+<label>clean_surveys.csv <input type="file" id="fs" accept=".csv"></label>
+<label>sightings_for_qgis.csv <input type="file" id="fp" accept=".csv"></label></div>
+<div class="note">Files stay in your browser. Nothing is uploaded.</div></div>
+<div class="card"><div class="row"><label>Zone <select id="zf"></select></label><label>Time slot <select id="sf"></select></label></div></div>
+<div class="kpis" id="kpis"></div>
+<div class="card"><h2>Sighting map (no basemap; compare with QGIS)</h2><div id="map"></div>
+<div class="leg note" id="leg"></div></div>
+<div class="grid">
+<div class="card"><h2>Sightings per effort-hour by zone</h2><div id="bz"></div></div>
+<div class="card"><h2>Sightings per effort-hour by time slot</h2><div id="bs"></div></div></div>
+<div class="card"><h2>People vs squirrels (each dot = one survey)</h2><div id="sc"></div></div>
+</main><script>
+const SL=['morning','afternoon','evening'],COL={morning:'#E69F00',afternoon:'#0072B2',evening:'#CC79A7'};
+let S=[],P=[],demo=true,zf='all',sf='all';
+const sum=(a,k)=>a.reduce((t,x)=>t+x[k],0),$=id=>document.getElementById(id);
+function demoData(){let s=7;const r=()=>(s=s*16807%2147483647)/2147483647;
+for(let zi=0;zi<8;zi++){const z='Z'+(zi+1),la=19.0746+(zi%4-1.5)*.0016,lo=72.8982+(Math.floor(zi/4)-.5)*.003;
+for(const sl of SL)for(let k=0;k<3;k++){const h=Math.round(3+r()*35),b={morning:4,afternoon:2,evening:3}[sl]*(zi==4||zi==6?1.6:1);
+const n=Math.max(0,Math.round(b*(.5+r())*(h>25?.7:1)));let t=0;
+for(let i=0;i<n;i++){const c=1+Math.floor(r()*3);t+=c;P.push({lat:la+(r()-.5)*.0014,lon:lo+(r()-.5)*.0016,count:c,zone:z,slot:sl})}
+S.push({zone:z,slot:sl,hum:h,tot:t,eff:.5})}}}
+function parse(t){const L=t.trim().split(/\r?\n/),H=L[0].split(',').map(x=>x.replace(/"/g,'').trim());
+return L.slice(1).map(l=>{const c=l.split(','),o={};H.forEach((h,i)=>o[h]=(c[i]||'').replace(/"/g,'').trim());return o})}
+const num=v=>v===''||v==null?NaN:+v;
+function readFile(el,fn){el.onchange=e=>{const f=e.target.files[0];if(!f)return;const R=new FileReader();R.onload=()=>{fn(parse(R.result));if(demo){demo=false;}render()};R.readAsText(f)}}
+readFile($('fs'),rows=>{if(demo)P=[];S=rows.map(r=>({zone:r.zone_id,slot:r.time_slot,hum:num(r.human_avg),tot:num(r.total_squirrels)||0,eff:num(r.effort_hours)||0}))});
+readFile($('fp'),rows=>{if(demo)S=[];P=rows.map(r=>({lat:num(r.lat),lon:num(r.lon),count:num(r.squirrel_count)||1,zone:r.zone_id,slot:r.time_slot})).filter(p=>!isNaN(p.lat)&&!isNaN(p.lon))});
+function opts(){const zs=[...new Set(S.map(x=>x.zone).concat(P.map(x=>x.zone)))].filter(Boolean).sort();
+$('zf').innerHTML='<option value="all">All zones</option>'+zs.map(z=>`<option ${z==zf?'selected':''}>${z}</option>`).join('');
+$('sf').innerHTML='<option value="all">All slots</option>'+SL.map(z=>`<option ${z==sf?'selected':''}>${z}</option>`).join('')}
+$('zf').onchange=e=>{zf=e.target.value;render(1)};$('sf').onchange=e=>{sf=e.target.value;render(1)};
+const rate=a=>{const e=sum(a,'eff');return e?sum(a,'tot')/e:0};
+function bars(id,items,sel){const m=Math.max(...items.map(i=>i.v),.001);
+$(id).innerHTML=items.length?items.map(i=>`<div class="bar ${i.k==sel?'sel':''}"><span class="l">${i.k}</span><span class="t"><i style="width:${i.v/m*100}%"></i></span><span class="v">${i.v.toFixed(1)}</span></div>`).join(''):'<div class="note">No data</div>'}
+function render(keep){if(!keep)opts();$('banner').style.display=demo?'block':'none';
+const fs=S.filter(x=>(zf=='all'||x.zone==zf)&&(sf=='all'||x.slot==sf)),fp=P.filter(x=>(zf=='all'||x.zone==zf)&&(sf=='all'||x.slot==sf));
+const hs=fs.filter(x=>!isNaN(x.hum));
+$('kpis').innerHTML=[[fs.length,'surveys'],[sum(fs,'tot'),'squirrels counted'],[rate(fs).toFixed(1),'sightings / effort-hour'],[hs.length?(sum(hs,'hum')/hs.length).toFixed(1):'-','avg people in zone']].map(k=>`<div class="kpi"><b>${k[0]}</b><span>${k[1]}</span></div>`).join('');
+const zs=[...new Set(S.map(x=>x.zone))].filter(Boolean).sort();
+bars('bz',zs.map(z=>({k:z,v:rate(S.filter(x=>x.zone==z&&(sf=='all'||x.slot==sf)))})),zf);
+bars('bs',SL.map(s=>({k:s.slice(0,4),v:rate(S.filter(x=>x.slot==s&&(zf=='all'||x.zone==zf)))})),sf=='all'?'':sf.slice(0,4));
+map(fp);scatter(fs.filter(x=>x.eff>0&&!isNaN(x.hum)))}
+function map(p){if(!p.length){$('map').innerHTML='<div class="note">No sighting points loaded.</div>';$('leg').innerHTML='';return}
+const la=p.map(x=>x.lat),lo=p.map(x=>x.lon),a=Math.min(...la),b=Math.max(...la),c=Math.min(...lo),d=Math.max(...lo),
+k=Math.cos(a*Math.PI/180),W=600,pd=20,w=(d-c||1e-4)*k,h=(b-a||1e-4),sc=Math.min((W-2*pd)/w,(380-2*pd)/h),H=h*sc+2*pd;
+const X=v=>pd+(v-c)*k*sc,Y=v=>H-pd-(v-a)*sc;
+$('map').innerHTML=`<svg viewBox="0 0 ${W} ${H}" style="max-height:420px"><rect width="${W}" height="${H}" fill="none" stroke="var(--border)"/>`+
+p.map(x=>`<circle cx="${X(x.lon).toFixed(1)}" cy="${Y(x.lat).toFixed(1)}" r="${3+x.count*1.5}" fill="${COL[x.slot]||'#888'}" fill-opacity=".6"><title>${x.zone} ${x.slot}, ${x.count}</title></circle>`).join('')+'</svg>';
+$('leg').innerHTML=SL.map(s=>`<span><i style="background:${COL[s]}"></i>${s}</span>`).join('')+'<span>Bigger dot = more squirrels</span>'}
+function scatter(a){if(a.length<2){$('sc').innerHTML='<div class="note">Not enough surveys.</div>';return}
+const xs=a.map(x=>x.hum),ys=a.map(x=>x.tot/x.eff),mx=Math.max(...xs,1),my=Math.max(...ys,1),W=600,H=300,L=44,B=34;
+$('sc').innerHTML=`<svg viewBox="0 0 ${W} ${H}"><line x1="${L}" y1="${H-B}" x2="${W-10}" y2="${H-B}" stroke="var(--muted)"/><line x1="${L}" y1="10" x2="${L}" y2="${H-B}" stroke="var(--muted)"/>`+
+a.map((x,i)=>`<circle cx="${L+xs[i]/mx*(W-L-20)}" cy="${H-B-ys[i]/my*(H-B-20)}" r="4" fill="${COL[x.slot]||'var(--bar)'}" fill-opacity=".7"/>`).join('')+
+`<text x="${W/2}" y="${H-6}" text-anchor="middle" font-size="12" fill="var(--muted)">average people in zone (max ${mx.toFixed(0)})</text><text x="12" y="${H/2}" font-size="12" fill="var(--muted)" transform="rotate(-90 12 ${H/2})" text-anchor="middle">sightings / effort-hour (max ${my.toFixed(0)})</text></svg>`}
+demoData();render();
+</script></body></html>
